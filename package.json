@@ -1,0 +1,15 @@
+{
+  "name": "st-andrews-observatory-frontend",
+  "version": "0.0.0",
+  "description": "Frontend for the St. Andrews university telescope web application",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "BSD-2-Clause",
+  "devDependencies": {
+    "gulp": "~3.6.2",
+    "gulp-browserify": "~0.5.0"
+  }
+}
