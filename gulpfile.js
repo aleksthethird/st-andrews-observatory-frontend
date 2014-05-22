@@ -11,12 +11,15 @@ gulp.task('build', function() {
 gulp.task('mvc', function() {
 	gulp.src('src/mvc.jsx')
 		.pipe(react())
+		.pipe(browserify({
+			extensions : '.jsx'
+		}))
 		.pipe(gulp.dest('./pkg'))
 
 })
 
 gulp.task('move', function() {
-	gulp.src('src/*.html')
+	gulp.src(['src/*.html', 'src/*.css', 'lib/*'])
 		.pipe(gulp.dest('./pkg'))
 })
 
