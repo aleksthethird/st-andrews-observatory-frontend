@@ -2,8 +2,11 @@ var DetailsRow = React.createClass({
   render : function() {
     return(
       <tr>
-        <td>{ this.props.k }</td>
-        <td>{ this.props.v }</td>
+        {
+          this.props.d.map(function(element, index) {
+            return <td>{ element }</td>
+          }) 
+        }
       </tr>
       )
   }
@@ -25,7 +28,7 @@ var DetailsTable = React.createClass({
       <table className="table">
         {
           this.state.rows.map(function(element, index) {
-            return <DetailsRow k={ element[0] } v={ element[1] } key={ index }/>
+            return <DetailsRow d={ element } key={ index }/>
           })
         }
       </table>
