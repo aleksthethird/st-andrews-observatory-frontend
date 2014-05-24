@@ -1,6 +1,7 @@
 var SunCalc = require('suncalc')
 var coords = [56.337123,-2.81655]
 var astroTimes = SunCalc.getTimes(new Date(), coords[0], coords[1]);
+var epoch = function(unixEpoch) { return unixEpoch*1000 }
 
 var DetailsRow = React.createClass({
   render : function() {
@@ -46,10 +47,39 @@ React.renderComponent(
   document.getElementById('details')
 )
 
+
+var ForecastTable = React.createClass({
+  getInitialState : function() {
+    return { 'data' : {} }
+  },
+
+  componentDidMount : function() {
+    $.get(this.props.source, function(result) {
+      this.setState({ 'data' : result})
+    }.bind(this))
+  },
+
+  render : function() {
+    return (
+      <div className="row">
+        {
+          Object.keys(this.state.data).map(function(e, i) {
+            if(typeof this.state.data[e] == 'object')
+              return Object.keys(this.state.data[e]).map(function(f,j){
+                  return <div className="col-md-1">{ f }</div>
+                }.bind(this))
+          }.bind(this))
+        }
+      </div>
+    )
+  }
+})
+
 React.renderComponent(
-  <DetailsTable source="../test-files/weather.json"/>,
+  <ForecastTable source="../test-files/1400862978.71.json"/>,
   document.getElementById('weather')
 )
+
 
 var Sun = React.createClass({
   getInitialState : function() {
