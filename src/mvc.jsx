@@ -1,6 +1,6 @@
 var SunCalc = require('suncalc')
 var coords = [56.337123,-2.81655]
-var astroTimes = SunCalc.getTimes(new Date(), coords[0], coords[1]);
+var astroTimes = SunCalc.getTimes(new Date(), coords[0], coords[1])
 var epoch = function(unixEpoch) { return unixEpoch*1000 }
 
 var DetailsRow = React.createClass({
@@ -47,6 +47,18 @@ React.renderComponent(
   document.getElementById('details')
 )
 
+var ForecastRow = React.createClass({
+  render : function() {
+    return <tr>
+      <td>{ this.props.forecaster }</td>
+      {
+        this.props.data.map(function(e, i) {
+          return <td key={ i } colSpan={ this.props.cs }>{ e['humidity'] }</td>
+        }.bind(this))
+      }
+    </tr>
+  }
+})
 
 var ForecastTable = React.createClass({
   getInitialState : function() {
@@ -60,17 +72,25 @@ var ForecastTable = React.createClass({
   },
 
   render : function() {
+    var times = []
+    if(this.state.data.hasOwnProperty('yr.no')){
+      times = this.state.data['yr.no'].map(function(e){
+        return new Date(epoch(e['time'])).getHours()
+      }).slice(0, 10)
+    }
     return (
-      <div className="row">
+      <table className="table">
+        <DetailsRow d={ times } />
         {
           Object.keys(this.state.data).map(function(e, i) {
-            if(typeof this.state.data[e] == 'object')
-              return Object.keys(this.state.data[e]).map(function(f,j){
-                  return <div className="col-md-1">{ f }</div>
-                }.bind(this))
+            if(typeof this.state.data[e] == typeof []) { 
+              var interval = e == 'met' ? '1' : '3'
+              var slice = this.state.data[e].slice(0,(10/interval))
+              return <ForecastRow key={ i } cs={ interval } data={ slice } forecaster={ e }/>
+            }
           }.bind(this))
         }
-      </div>
+      </table>
     )
   }
 })
