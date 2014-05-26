@@ -1,12 +1,12 @@
-var gulp = require('gulp')
-var browserify = require('gulp-browserify')
-var react = require('gulp-react')
+var gulp = require('gulp');
+var browserify = require('gulp-browserify');
+var react = require('gulp-react');
 
 gulp.task('build', function() {
 	gulp.src('src/main.js')
 		.pipe(browserify())
-		.pipe(gulp.dest('./pkg'))
-})
+		.pipe(gulp.dest('./pkg'));
+});
 
 gulp.task('mvc', function() {
 	gulp.src('src/mvc.jsx')
@@ -14,13 +14,12 @@ gulp.task('mvc', function() {
 		.pipe(browserify({
 			extensions : '.jsx'
 		}))
-		.pipe(gulp.dest('./pkg'))
-
-})
+		.pipe(gulp.dest('./pkg'));
+});
 
 gulp.task('move', function() {
 	gulp.src(['src/*.html', 'src/*.css', 'lib/*'])
-		.pipe(gulp.dest('./pkg'))
-})
+		.pipe(gulp.dest('./pkg'));
+});
 
-gulp.task('default', ['build', 'move', 'mvc' ])
+gulp.task('default', ['build', 'move', 'mvc' ]);
