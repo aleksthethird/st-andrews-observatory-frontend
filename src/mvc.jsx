@@ -41,9 +41,9 @@ var parseMet = function(metForecast) {
     return {
       'interval': 3,
       'data': [
-        ['Humidity', element['humidity']],
-        ['Wind Speed', element['wind']['speed']],
-        ['Conditions', element['cloud']]
+        [<i alt='Humidity' key='{ index }' className='wi-sprinkles'></i>, element['humidity']],
+        [<i alt='Wind speed' key='{ index }' className='wi-windy'></i>, element['wind']['speed']],
+        [<i alt='Conditions'  key='{ index }' className='wi-cloud'></i>, element['cloud']]
       ]
     }
   })
@@ -54,9 +54,9 @@ var parseYrNo = function(yrNoForecast) {
     return {
       'interval': 1,
       'data': [
-        ['Humidity', element['humidity']],
-        ['Wind Speed', element['wind']['speed']],
-        ['Cloud Cover', element['cloud']['cover']]
+        [<i key='{ index }' alt='Humidity' className='wi-sprinkles'></i>, element['humidity']],
+        [<i key='{ index }' alt='Wind speed' className='wi-windy'></i>, element['wind']['speed']],
+        [<i key='{ index }' alt='Cloud cover' className='wi-cloud'></i>, element['cloud']['cover']]
       ]
     }
   })
@@ -66,7 +66,7 @@ var parseYrNo = function(yrNoForecast) {
 var parseForecastIntoTable = function(forecast, startTime, length) {
   var rows = [
     [''].concat(generateTimes(startTime, length)),
-    ['MET'].concat(parseMet(forecast['met']).slice(0,length)),
+    ['MET'].concat(parseMet(forecast['met']).slice(0,length/3)),
     ['Yr.No'].concat(parseYrNo(forecast['yr.no']).slice(0,length))
   ]
   return rows
@@ -93,7 +93,7 @@ var DetailsTable = React.createClass({
     return { 'data' : [] }
   },
 
-  componentDidMount : function() {
+  componentWillReceiveProps : function() {
     $.get(this.props.source, function(result) {
       this.setState({ 'data' : Object.keys(result["headers"]).map(function(e){
         return [
@@ -108,12 +108,35 @@ var DetailsTable = React.createClass({
     return(
       <div className="col-md-4">
         <table className="table table-striped">
-          {
-            this.state.data.map(function(element, index) {
-              return <DetailsRow d={ element } key={ index }/>
-            })
-          }
+          <tbody>
+            {
+              this.state.data.map(function(element, index) {
+                return <DetailsRow d={ element } key={ index }/>
+              })
+            }
+          </tbody>
         </table>
+      </div>
+    )
+  }
+})
+
+var ViewerController = React.createClass({
+  next : function() {
+    var current = this.props.parent.state.current
+    this.props.parent.setState({ current : ++current })
+  },
+
+  prev : function() {
+    var current = this.props.parent.state.current
+    this.props.parent.setState({ current : --current })
+  },
+
+  render : function() {
+    return(
+      <div>
+        <button onClick={ this.next } type="button" className="btn btn-default">Previous</button>
+        <button onClick={ this.prev } type="button" className="btn btn-default">Next</button>
       </div>
     )
   }
@@ -121,21 +144,22 @@ var DetailsTable = React.createClass({
 
 var TelescopeViewer = React.createClass({
   getInitialState : function() {
-    return {'index' : [], 'root' : '../test-files/test-db/', current : '1397939237' }
+    return {'index' : ['1397939237'], 'root' : '../test-files/test-db/', current : 0 }
   },
 
   componentDidMount : function() {
     $.get(this.props.source, function(result) {
-      this.setState({ 'index' : result, 'current' : result[0] })
+      this.setState({ 'index' : result, 'current' : 0 })
     }.bind(this))
   },
 
   render : function() {
     return (
         <div>
-          <DetailsTable source={ this.state.current == undefined ? '' : this.state.root + this.state.current + '.json' } />
+          <DetailsTable source={ this.state.root + this.state.index[this.state.current] + '.json' } />
           <div className="col-md-8">
-            <img width="600px" src= { this.state.current == undefined ? '' : this.state.root + this.state.current + '.png' } />
+            <img width="600px" src= { this.state.root + this.state.index[this.state.current] + '.png' } />
+            <ViewerController parent={ this }/>
           </div>
         </div>
       )
@@ -156,10 +180,9 @@ var ForecastRow = React.createClass({
           if(typeof e == 'string'){
             return <td key={ i }> { e } </td>
           } else {
-            console.log(e)
-            return <td key={ i } colSpan={ this.props.cs }> {
+            return <td key={ i } colSpan={ e.interval }> {
               e.data.map(function(f, j){
-                return <p> { f[0] + ':' + f[1] } </p>
+                return <p> { f[0] } { f[1] } </p>
               })
             }
             </td>
@@ -177,20 +200,22 @@ var ForecastTable = React.createClass({
 
   componentDidMount : function() {
     $.get(this.props.source, function(result) {
-      this.setState({ 'data' : parseForecastIntoTable(result, new Date(), 5)})
+      this.setState({ 'data' : parseForecastIntoTable(result, new Date(), 9)})
     }.bind(this))
   },
 
   render : function() {
     var times = []
     return (
-      <table className="table">
-        <DetailsRow d={ times } />
-        {
-          this.state.data.map(function(e, i) {
-            return <ForecastRow key={ i } data={ e }/>
-          }.bind(this))
-        }
+      <table className="table table-striped">
+        <tbody>
+          <DetailsRow d={ times } />
+          {
+            this.state.data.map(function(e, i) {
+              return <ForecastRow key={ i } data={ e }/>
+            }.bind(this))
+          }
+        </tbody>
       </table>
     )
   }
