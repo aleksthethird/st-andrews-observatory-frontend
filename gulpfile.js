@@ -18,7 +18,7 @@ gulp.task('mvc', function() {
 });
 
 gulp.task('move', function() {
-	gulp.src(['src/*.html', 'src/*.css', 'lib/*'])
+	gulp.src(['src/*.html', 'src/*.css', 'src/lib/*/*/*/*/*'])
 		.pipe(gulp.dest('./pkg'));
 });
 
