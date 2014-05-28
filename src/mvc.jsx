@@ -93,7 +93,7 @@ var DetailsTable = React.createClass({
     return { 'data' : [] }
   },
 
-  componentWillReceiveProps : function() {
+  componentDidMount : function() {
     $.get(this.props.source, function(result) {
       this.setState({ 'data' : Object.keys(result["headers"]).map(function(e){
         return [
@@ -122,21 +122,17 @@ var DetailsTable = React.createClass({
 })
 
 var ViewerController = React.createClass({
-  next : function() {
-    var current = this.props.parent.state.current
-    this.props.parent.setState({ current : ++current })
-  },
 
-  prev : function() {
+  change : function(inc) {
     var current = this.props.parent.state.current
-    this.props.parent.setState({ current : --current })
+    this.props.parent.setState({ current : current += inc })
   },
 
   render : function() {
     return(
       <div>
-        <button onClick={ this.next } type="button" className="btn btn-default">Previous</button>
-        <button onClick={ this.prev } type="button" className="btn btn-default">Next</button>
+        <button onClick={ this.change.bind(this, +1) } type="button" className="btn btn-default">Previous</button>
+        <button onClick={ this.change.bind(this, -1) } type="button" className="btn btn-default">Next</button>
       </div>
     )
   }
