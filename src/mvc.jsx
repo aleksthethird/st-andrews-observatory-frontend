@@ -16,19 +16,19 @@ var timeString = function(unixEpoch) {
   time = new Date(unixEpoch)
   timeNow = new Date()
   if(time.getDate() == timeNow.getDate()){
-    return time.getHours() + '00'
-  } else if(time.getDate() == timeNow.setDate(timeNow.getDate() + 1)){
-    return time.getHours() + '00 tomorrow'
+    return ('0' + time.getHours()).slice(-2) + '00'
   }
-  return time.getHours() + '00 ' + time.getDate() + '/' + time.getMonth()
+  return ('0' + time.getHours()).slice(-2) + '00 ' + time.getDate() + '/' + time.getMonth()
 }
 
 var generateTimes = function(start, length) {
   var times = new Array(length)
+  console.log(start)
   times[0] = start
   for (var i = 1; i < times.length; i++) {
-    times[i] = times[i-1]
+    times[i] = new Date(times[i-1])
     times[i].setHours(times[i-1].getHours() + 1)
+    times[i]
   }
   return times.map(function(e) {
     return timeString(e)
@@ -41,9 +41,11 @@ var parseMet = function(metForecast) {
     return {
       'interval': 3,
       'data': [
-        [<i alt='Humidity' key='{ index }' className='wi-sprinkles'></i>, element['humidity']],
-        [<i alt='Wind speed' key='{ index }' className='wi-windy'></i>, element['wind']['speed']],
-        [<i alt='Conditions'  key='{ index }' className='wi-cloud'></i>, element['cloud']]
+        [<i key='{ index }' alt='Humidity' key='{ index }' className='wi-sprinkles'></i>, element['humidity']],
+        [<i key='{ index }' alt='Wind speed' key='{ index }' className='wi-windy'></i>, element['wind']['speed']],
+        [<i key='{ index }' alt='Wind direction' key='{ index }' className='wi-windy'></i>, element['wind']['direction']],
+        [<i key='{ index }' alt='Wind speed' className='wi-windy'></i>, element['wind']['speed']],
+        [<i key='{ index }' alt='Conditions'  key='{ index }' className='wi-cloud'></i>, element['cloud']]
       ]
     }
   })
@@ -56,6 +58,7 @@ var parseYrNo = function(yrNoForecast) {
       'data': [
         [<i key='{ index }' alt='Humidity' className='wi-sprinkles'></i>, element['humidity']],
         [<i key='{ index }' alt='Wind speed' className='wi-windy'></i>, element['wind']['speed']],
+        [<i key='{ index }' alt='Wind direction' key='{ index }' className='wi-windy'></i>, element['wind']['direction']],
         [<i key='{ index }' alt='Cloud cover' className='wi-cloud'></i>, element['cloud']['cover']]
       ]
     }
@@ -93,7 +96,7 @@ var DetailsTable = React.createClass({
     return { 'data' : [] }
   },
 
-  componentDidMount : function() {
+  componentWillReceiveProps : function() {
     $.get(this.props.source, function(result) {
       this.setState({ 'data' : Object.keys(result["headers"]).map(function(e){
         return [
@@ -122,15 +125,16 @@ var DetailsTable = React.createClass({
 })
 
 var ViewerController = React.createClass({
-
   change : function(inc) {
-    var current = this.props.parent.state.current
-    this.props.parent.setState({ current : current += inc })
+    var next = this.props.parent.state.current + inc
+    if(next > 0 && next < this.props.parent.state.index.length){
+      this.props.parent.setState({ current : next })
+    }
   },
 
   render : function() {
     return(
-      <div>
+      <div className="text-center">
         <button onClick={ this.change.bind(this, +1) } type="button" className="btn btn-default">Previous</button>
         <button onClick={ this.change.bind(this, -1) } type="button" className="btn btn-default">Next</button>
       </div>
