@@ -4,12 +4,25 @@ var astroTimes = SunCalc.getTimes(new Date(), coords[0], coords[1])
 var epoch = function(unixEpoch) { return unixEpoch*1000 }
 
 var makeFitsReadable = function(string) {
-  var readable = {
-    'TEL-DEC' : 'Declination',
-    'TEL-RA' : 'Righ Ascention',
-    'AIRMASS' : 'Air Mass',
-
+  var translations = {
+    'TEL-DEC' : [ 1, 'Declination', ''],
+    'TEL-RA' : [ 1, 'Right Ascention', ''],
+    'AIRMASS' : [ 1,  'Air Mass', 'Air mass indicates the amount of atmosphere is present between the telescope and the observed object. It is affected by the angle and direction of the telescope. Light is affected more if it has to travel through more atmosphere to reach the lense.'],
+    'FILTER' : [ 1, 'Filter'],
+    'DATE-OBS' : [ 1, 'Date observed']
   }
+  return translations[string] == undefined ? [ 0, string] : translations[string]
+}
+
+var filterFitsMeta = function(headers){
+  return Object.keys(headers).map(function(e) {
+    var readable = makeFitsReadable(e)
+    return {
+      'cols' : [ readable[1], headers[e]['data'] ],
+      'alt' : readable[2],
+      'visible' : readable[0]
+    } 
+  })
 }
 
 var timeString = function(unixEpoch) {
@@ -35,7 +48,6 @@ var generateTimes = function(start, length) {
   })
 }
 
-
 var parseMet = function(metForecast) {
   return metForecast.map(function(element, index, array){
     return {
@@ -43,8 +55,7 @@ var parseMet = function(metForecast) {
       'data': [
         [<i key='{ index }' alt='Humidity' key='{ index }' className='wi-sprinkles'></i>, element['humidity']],
         [<i key='{ index }' alt='Wind speed' key='{ index }' className='wi-windy'></i>, element['wind']['speed']],
-        [<i key='{ index }' alt='Wind direction' key='{ index }' className='wi-windy'></i>, element['wind']['direction']],
-        [<i key='{ index }' alt='Wind speed' className='wi-windy'></i>, element['wind']['speed']],
+        [<i key='{ index }' alt='Wind direction' key='{ index }' className='wi-wind-north'></i>, element['wind']['direction']],
         [<i key='{ index }' alt='Conditions'  key='{ index }' className='wi-cloud'></i>, element['cloud']]
       ]
     }
@@ -58,13 +69,23 @@ var parseYrNo = function(yrNoForecast) {
       'data': [
         [<i key='{ index }' alt='Humidity' className='wi-sprinkles'></i>, element['humidity']],
         [<i key='{ index }' alt='Wind speed' className='wi-windy'></i>, element['wind']['speed']],
-        [<i key='{ index }' alt='Wind direction' key='{ index }' className='wi-windy'></i>, element['wind']['direction']],
+        [<i key='{ index }' alt='Wind direction' key='{ index }' className='wi-wind-north'></i>, element['wind']['direction']],
         [<i key='{ index }' alt='Cloud cover' className='wi-cloud'></i>, element['cloud']['cover']]
       ]
     }
   })
 }
 
+// var withinHour(a) {
+
+// }
+
+var sliceForecast = function(startTime, interval, length, forecast) {
+  var selection = []
+  // forecast.forEach(function(e) {
+  //   if()
+  // })
+}
 
 var parseForecastIntoTable = function(forecast, startTime, length) {
   var rows = [
@@ -98,24 +119,26 @@ var DetailsTable = React.createClass({
 
   componentWillReceiveProps : function() {
     $.get(this.props.source, function(result) {
-      this.setState({ 'data' : Object.keys(result["headers"]).map(function(e){
-        return [
-          e,
-          result["headers"][e]["data"]
-        ]
-      })}) 
+      this.setState({ 'data' : filterFitsMeta(result['headers']), 'hideSome' : 1 })
     }.bind(this))
+  },
+
+  toggle : function() {
+    this.setState({ hideSome : !this.state.hideSome })
   },
 
   render : function () {
     return(
       <div className="col-md-4">
+        <a onClick={ this.toggle }>Show { this.state.hideSome ? 'more' : 'less' }</a>
         <table className="table table-striped">
           <tbody>
             {
               this.state.data.map(function(element, index) {
-                return <DetailsRow d={ element } key={ index }/>
-              })
+                if(!this.state.hideSome || element.visible) {
+                  return <DetailsRow d={ element.cols } key={ index }/>
+                }
+              }.bind(this))
             }
           </tbody>
         </table>
@@ -134,7 +157,7 @@ var ViewerController = React.createClass({
 
   render : function() {
     return(
-      <div className="text-center">
+      <div>
         <button onClick={ this.change.bind(this, +1) } type="button" className="btn btn-default">Previous</button>
         <button onClick={ this.change.bind(this, -1) } type="button" className="btn btn-default">Next</button>
       </div>
@@ -157,15 +180,14 @@ var TelescopeViewer = React.createClass({
     return (
         <div>
           <DetailsTable source={ this.state.root + this.state.index[this.state.current] + '.json' } />
-          <div className="col-md-8">
-            <img width="600px" src= { this.state.root + this.state.index[this.state.current] + '.png' } />
+          <div className="col-md-8 text-center">
+            <img className="img-responsive" src= { this.state.root + this.state.index[this.state.current] + '.png' } />
             <ViewerController parent={ this }/>
           </div>
         </div>
       )
   }
 })
-
 
 React.renderComponent(
   <TelescopeViewer source="../test-files/test-db/index.json"/>,
@@ -225,7 +247,6 @@ React.renderComponent(
   <ForecastTable source="../test-files/1400862978.71.json"/>,
   document.getElementById('weather')
 )
-
 
 var Sun = React.createClass({
   getInitialState : function() {
