@@ -129,7 +129,7 @@ var DetailsTable = React.createClass({
 
   render : function () {
     return(
-      <div className="col-md-4">
+      <span>
         <a onClick={ this.toggle }>Show { this.state.hideSome ? 'more' : 'less' }</a>
         <table className="table table-striped">
           <tbody>
@@ -142,7 +142,7 @@ var DetailsTable = React.createClass({
             }
           </tbody>
         </table>
-      </div>
+      </span>
     )
   }
 })
@@ -157,7 +157,7 @@ var ViewerController = React.createClass({
 
   render : function() {
     return(
-      <div>
+      <div className="text-center">
         <button onClick={ this.change.bind(this, +1) } type="button" className="btn btn-default">Previous</button>
         <button onClick={ this.change.bind(this, -1) } type="button" className="btn btn-default">Next</button>
       </div>
@@ -179,10 +179,12 @@ var TelescopeViewer = React.createClass({
   render : function() {
     return (
         <div>
-          <DetailsTable source={ this.state.root + this.state.index[this.state.current] + '.json' } />
+          <div className="col-md-4">
+            <ViewerController parent={ this }/>
+            <DetailsTable source={ this.state.root + this.state.index[this.state.current] + '.json' } />
+          </div>
           <div className="col-md-8 text-center">
             <img className="img-responsive" src= { this.state.root + this.state.index[this.state.current] + '.png' } />
-            <ViewerController parent={ this }/>
           </div>
         </div>
       )
@@ -222,7 +224,7 @@ var ForecastTable = React.createClass({
 
   componentDidMount : function() {
     $.get(this.props.source, function(result) {
-      this.setState({ 'data' : parseForecastIntoTable(result, new Date(), 9)})
+      this.setState({ 'data' : parseForecastIntoTable(result, new Date(), 30)})
     }.bind(this))
   },
 

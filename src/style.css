@@ -1,0 +1,7 @@
+#weather {
+	overflow-x: scroll;
+}
+
+#weather table {
+	width: 3000px;
+}
