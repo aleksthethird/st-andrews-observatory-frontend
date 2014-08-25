@@ -1,9 +1,12 @@
-var SunCalc = require('suncalc')
-var coords = [56.337123,-2.81655]
-var astroTimes = SunCalc.getTimes(new Date(), coords[0], coords[1])
-var epoch = function(unixEpoch) { return unixEpoch*1000 }
+var SunCalc = require('suncalc'),
+  coords = [56.337123,-2.81655],
+  astroTimes = SunCalc.getTimes(new Date(), coords[0], coords[1]),
+  epoch = function(unixEpoch) { return unixEpoch*1000 },
+  moment = require('moment'),
+  config = require('../config.js');
 
-var makeFitsReadable = function(string) {
+// take a fits field description and put it into a prettier format
+makeFitsReadable = function(string) {
   var translations = {
     'TEL-DEC' : [ 1, 'Declination', ''],
     'TEL-RA' : [ 1, 'Right Ascention', ''],
@@ -14,6 +17,7 @@ var makeFitsReadable = function(string) {
   return translations[string] == undefined ? [ 0, string] : translations[string]
 }
 
+// filter fits header, only outputting useful headers
 var filterFitsMeta = function(headers){
   return Object.keys(headers).map(function(e) {
     var readable = makeFitsReadable(e)
@@ -25,73 +29,76 @@ var filterFitsMeta = function(headers){
   })
 }
 
+// make time into a readable string from unix epoch
 var timeString = function(unixEpoch) {
-  time = new Date(unixEpoch)
-  timeNow = new Date()
+  time = new Date(unixEpoch); // bug?
+  timeNow = new Date();
   if(time.getDate() == timeNow.getDate()){
-    return ('0' + time.getHours()).slice(-2) + '00'
+    return moment(time).fromNow();
   }
   return ('0' + time.getHours()).slice(-2) + '00 ' + time.getDate() + '/' + time.getMonth()
 }
 
+// generate times for weather forecast header
 var generateTimes = function(start, length) {
-  var times = new Array(length)
-  console.log(start)
-  times[0] = start
-  for (var i = 1; i < times.length; i++) {
-    times[i] = new Date(times[i-1])
+  var times = [];
+  times[0] = start;
+  for (var i = 1; i < (length-1); i++) {
+    times.push(new Date(times[i-1]))
     times[i].setHours(times[i-1].getHours() + 1)
-    times[i]
   }
   return times.map(function(e) {
     return timeString(e)
   })
 }
 
+// parse out met forecast for each time interval
 var parseMet = function(metForecast) {
   return metForecast.map(function(element, index, array){
     return {
       'interval': 3,
       'data': [
-        [<i key='{ index }' alt='Humidity' key='{ index }' className='wi-sprinkles'></i>, element['humidity']],
-        [<i key='{ index }' alt='Wind speed' key='{ index }' className='wi-windy'></i>, element['wind']['speed']],
-        [<i key='{ index }' alt='Wind direction' key='{ index }' className='wi-wind-north'></i>, element['wind']['direction']],
-        [<i key='{ index }' alt='Conditions'  key='{ index }' className='wi-cloud'></i>, element['cloud']]
+        [<i key='{ index }' alt='Humidity' key='{ index }' className='wi-sprinkles'></i>, element['humidity'], <span>%</span>],
+        [<i key='{ index }' alt='Wind speed' key='{ index }' className='wi-windy'></i>, element['wind']['speed'], <span>mph</span>],
+        [<i key='{ index }' alt='Conditions'  key='{ index }' className='wi-cloud'></i>, element['cloud'], <span></span>]
       ]
     }
   })
 }
 
+// parse out YrNo forecast for each time interval
 var parseYrNo = function(yrNoForecast) {
   return yrNoForecast.map(function(element, index, array){
     return {
       'interval': 1,
       'data': [
-        [<i key='{ index }' alt='Humidity' className='wi-sprinkles'></i>, element['humidity']],
-        [<i key='{ index }' alt='Wind speed' className='wi-windy'></i>, element['wind']['speed']],
-        [<i key='{ index }' alt='Wind direction' key='{ index }' className='wi-wind-north'></i>, element['wind']['direction']],
-        [<i key='{ index }' alt='Cloud cover' className='wi-cloud'></i>, element['cloud']['cover']]
+        [<i key={ index } alt='Humidity' className='wi-sprinkles'></i>, element['humidity'], <span>%</span>],
+        [<i key={ index } alt='Wind speed' className='wi-windy'></i>, Math.round(element['wind']['speed'] * 2.237), <span>mph</span>],
+        [<i key={ index } alt='Cloud cover' className='wi-cloud'></i>, element['cloud']['cover'], <span>%</span>]
       ]
     }
   })
 }
 
-// var withinHour(a) {
 
-// }
 
-var sliceForecast = function(startTime, interval, length, forecast) {
-  var selection = []
-  // forecast.forEach(function(e) {
-  //   if()
-  // })
+// TODO: chop forecast into desired time interval
+var sliceForecast = function(startTime, lengthHours, forecast) {
+  var selection = [],
+    startTime = startTime ? startTime : 1401080400,
+    endTime = startTime + (60*60*lengthHours);
+  return forecast.reduce(function(prev, cur, i) {
+      if (cur.time > startTime && cur.time < endTime ) return prev.concat(cur);
+      return prev;
+  }, []);
 }
 
+// produce forecast rows
 var parseForecastIntoTable = function(forecast, startTime, length) {
   var rows = [
     [''].concat(generateTimes(startTime, length)),
-    ['MET'].concat(parseMet(forecast['met']).slice(0,length/3)),
-    ['Yr.No'].concat(parseYrNo(forecast['yr.no']).slice(0,length))
+    ['MET'].concat(parseMet(sliceForecast(undefined, length, forecast['met']))),
+    ['Yr.No'].concat(parseYrNo(sliceForecast(undefined, length, forecast['yr.no'])))
   ]
   return rows
 }
@@ -206,7 +213,7 @@ var ForecastRow = React.createClass({
           } else {
             return <td key={ i } colSpan={ e.interval }> {
               e.data.map(function(f, j){
-                return <p> { f[0] } { f[1] } </p>
+                return <p> { f[0] } { f[1] } { f[2] } </p>
               })
             }
             </td>
@@ -224,7 +231,7 @@ var ForecastTable = React.createClass({
 
   componentDidMount : function() {
     $.get(this.props.source, function(result) {
-      this.setState({ 'data' : parseForecastIntoTable(result, new Date(), 30)})
+      this.setState({ 'data' : parseForecastIntoTable(result, new Date(), 7)})
     }.bind(this))
   },
 
