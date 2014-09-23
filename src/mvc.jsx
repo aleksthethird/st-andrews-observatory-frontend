@@ -1,9 +1,15 @@
+// This file contains 90% of the important code in this project
+// it is built using react which is and MVC library. Read more about it in the readme.md
+// individual functions are documented with their functionality
+
 var SunCalc = require('suncalc'),
   coords = [56.337123,-2.81655],
   astroTimes = SunCalc.getTimes(new Date(), coords[0], coords[1]),
   epoch = function(unixEpoch) { return unixEpoch*1000 },
   moment = require('moment'),
-  config = require('../config.js');
+  config = require('../config.js'),
+  DataLoader = require('./DataLoader.js'),
+  dataRoot = 'data/';
 
 // take a fits field description and put it into a prettier format
 makeFitsReadable = function(string) {
@@ -26,8 +32,8 @@ var filterFitsMeta = function(headers){
       'alt' : readable[2],
       'visible' : readable[0]
     } 
-  })
-}
+  });
+};
 
 // make time into a readable string from unix epoch
 var timeString = function(unixEpoch) {
@@ -47,7 +53,8 @@ var generateTimes = function(start, length) {
     times.push(new Date(times[i-1]))
     times[i].setHours(times[i-1].getHours() + 1)
   }
-  return times.map(function(e) {
+  return times.map(function(e, i) {
+    if(i == 0) return 'now';
     return timeString(e)
   })
 }
@@ -80,17 +87,16 @@ var parseYrNo = function(yrNoForecast) {
   })
 }
 
-
-
-// TODO: chop forecast into desired time interval
+// chop forecast into desired time interval
 var sliceForecast = function(startTime, lengthHours, forecast) {
   var selection = [],
-    startTime = startTime ? startTime : 1401080400,
+    startTime = startTime ? startTime : (new Date).getTime()/1000,
     endTime = startTime + (60*60*lengthHours);
   return forecast.reduce(function(prev, cur, i) {
+      console.log(startTime, cur.time, endTime)
       if (cur.time > startTime && cur.time < endTime ) return prev.concat(cur);
       return prev;
-  }, []);
+  }, []).slice(0,6);
 }
 
 // produce forecast rows
@@ -119,6 +125,8 @@ var DetailsRow = React.createClass({
   }
 })
 
+// this component appears next to the image and shows a collapsible list of FITS metadata.
+
 var DetailsTable = React.createClass({
   getInitialState : function() {
     return { 'data' : [] }
@@ -126,7 +134,7 @@ var DetailsTable = React.createClass({
 
   componentWillReceiveProps : function() {
     $.get(this.props.source, function(result) {
-      this.setState({ 'data' : filterFitsMeta(result['headers']), 'hideSome' : 1 })
+    	this.setState({ 'data' : filterFitsMeta(result['headers']), 'hideSome' : 1 })
     }.bind(this))
   },
 
@@ -155,7 +163,7 @@ var DetailsTable = React.createClass({
 })
 
 var ViewerController = React.createClass({
-  change : function(inc) {
+  change : function(inc, event) {
     var next = this.props.parent.state.current + inc
     if(next > 0 && next < this.props.parent.state.index.length){
       this.props.parent.setState({ current : next })
@@ -174,7 +182,7 @@ var ViewerController = React.createClass({
 
 var TelescopeViewer = React.createClass({
   getInitialState : function() {
-    return {'index' : ['1397939237'], 'root' : '../test-files/test-db/', current : 0 }
+    return {'index' : ['1397939237'], 'root' : dataRoot + 'images/', current : 0 }
   },
 
   componentDidMount : function() {
@@ -199,12 +207,13 @@ var TelescopeViewer = React.createClass({
 })
 
 React.renderComponent(
-  <TelescopeViewer source="../test-files/test-db/index.json"/>,
+  <TelescopeViewer source={dataRoot + '/images/index.json'}/>,
   document.getElementById('telescope-viewer')
 )
 
 var ForecastRow = React.createClass({
   render : function() {
+    console.log(this.props.data);
     return <tr>
       {
         this.props.data.map(function(e, i) {
@@ -230,9 +239,13 @@ var ForecastTable = React.createClass({
   },
 
   componentDidMount : function() {
-    $.get(this.props.source, function(result) {
-      this.setState({ 'data' : parseForecastIntoTable(result, new Date(), 7)})
-    }.bind(this))
+    var self = this;
+    $.get(self.props.source, function(index) {
+      $.get(dataRoot + 'weather/' + index[0] + '.json', function(weather) {
+        console.log(weather)
+        self.setState({ 'data' : parseForecastIntoTable(weather, new Date(), 7)})
+      })
+    })
   },
 
   render : function() {
@@ -243,6 +256,7 @@ var ForecastTable = React.createClass({
           <DetailsRow d={ times } />
           {
             this.state.data.map(function(e, i) {
+              console.log(e)
               return <ForecastRow key={ i } data={ e }/>
             }.bind(this))
           }
@@ -253,13 +267,15 @@ var ForecastTable = React.createClass({
 })
 
 React.renderComponent(
-  <ForecastTable source="../test-files/1400862978.71.json"/>,
+  <ForecastTable source={ dataRoot + 'weather/index.json' }/>,
   document.getElementById('weather')
 )
 
+// component displays sun at night, moon at day
+
 var Sun = React.createClass({
   getInitialState : function() {
-    return { 'isNight' : astroTimes.night < new Date() < astroTimes.nightEnd }
+    return { 'isNight' : astroTimes.nightEnd > new Date() > astroTimes.night }
   },
 
   render : function() {
@@ -280,7 +296,7 @@ var Conditions = React.createClass({
   }
 })
 
-React.renderComponent(
-  <Conditions />,
-  document.getElementById('conditions')
-)
+// React.renderComponent(
+//   <Conditions />,
+//   document.getElementById('conditions')
+// )
